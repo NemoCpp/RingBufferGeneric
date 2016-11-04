@@ -8,57 +8,59 @@ def  test(suiv):
     suiv.close()
 
 def pipe(suiv):
-    try : 
+    try :
         while True:
             input=yield
             print("Pipe :", input)
             lettre = 1
             while (lettre < len(input)):
                 suiv.send(input[lettre])
-                lettre = lettre+2; 
+                lettre = lettre+2;
     except GeneratorExit:
         suiv.close()
 
 
 def buffer(suiv):
-    try : 
+    try :
         buf1 = [None] * 2
         while(True):
-            i = 0 
+            i = 0
             while(i<2):
-                input = yield 
+                input = yield
                 print("Buffer :", input)
                 buf1[i] = input
-                i+= 1 
+                i+= 1
             suiv.send(buf1)
     except GeneratorExit:
         suiv.close()
 
-def buffercirculaire(suiv, fenetre, decalage):
-	try : 
-		buffer = [None]*fenetre*4
-		ecriture = 0
-		lecture = 0
-		while True : 
+"""
+# TODO Sphinx documentation
+"""
+def ring_buffer(next, window, offset):
+	try :
+		buffer = [None]*window*4
+		write_index = 0
+		read_index = 0
+		while True :
 			input = yield
-			print("Un truc :", input)
-			#Calcul écart entre les deux pointeurs, si buffer > fenetre 
-			taille =  ecriture - lecture if lecture < ecriture else fenetre - lecture + ecriture 
-			#tant qu'on n'a pas rempli le buffer 
+			# data size between indexes
+			data_size =  write_index - read_index if read_index < write_index else window - read_index + write_index
+			# add new data to buffer
 			for j in range (0, len(input)):
-				buffer[ecriture] = input[j]
-				ecriture = (ecriture + 1 ) % len(buffer)	
+				buffer[write_index] = input[j]
+				write_index = (write_index + 1 ) % len(buffer)
 
-			while(taille > fenetre):
-				#Si la totalité du tableau n'est pas à cheval sur la fin et le début du tableau 
-				if (lecture < (lecture + fenetre)%len(buffer)):
-					suiv.send(buffer[lecture : lecture + fenetre])
-				else: 
-					suiv.send(buffer[lecture : len(buf)] + buffer[0 : (fenetre - len(buffer) + lecture)])
-				lecture = (lecture + decalage) % len(buffer)
-				taille =  ecriture - lecture if lecture < ecriture else fenetre - lecture + ecriture 			
-	except GeneratorExit: 
-		suiv.close()
+			while(data_size > window):
+				# send a window (testing the case we must concatenate the beginning and end of the buffer)
+				if (read_index < (read_index + window)%len(buffer)):
+					next.send(buffer[read_index : read_index + window])
+				else:
+					next.send(buffer[read_index : len(buf)] + buffer[0 : (window - len(buffer) + read_index)])
+				read_index = (read_index + offset) % len(buffer)
+				data_size =  write_index - read_index if read_index < write_index else window - read_index + write_index
+	except GeneratorExit:
+		next.close()
 
 
 def sub():
@@ -72,10 +74,8 @@ def sub():
 
 sink = sub()
 next(sink)
-buf = buffercirculaire(sink, 4, 2 )
+buf = ring_buffer(sink, 4, 2 )
 next(buf)
 source = test(buf)
 next(source)
 next(source)
-
-   
