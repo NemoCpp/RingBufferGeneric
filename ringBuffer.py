@@ -1,4 +1,4 @@
-#Coroutine of a Ringbuffer 
+#Coroutine of a Ringbuffer
 
 def coroutine(func):
     """
@@ -11,7 +11,8 @@ def coroutine(func):
         cr = func(*args,**kwargs)
         next(cr)
         return cr
-    return start 
+    return start
+
 
 @coroutine
 def ring_buffer(next, window, covering):
@@ -32,22 +33,21 @@ def ring_buffer(next, window, covering):
             input = yield
             if input is None:
                 continue
-            # data size between indexes
-            data_size =  write_index - read_index if read_index < write_index else window - read_index + write_index
             # add new data to buffer
             for j in range (0, len(input)):
                 buffer[write_index] = input[j]
+                #update write_index
                 write_index = (write_index + 1 ) % len(buffer)
-
-            while(data_size > window):
-                # send a window (testing the case we must concatenate the beginning and end of the buffer)
-                if (read_index < (read_index + window)%len(buffer)):
-                    next.send(buffer[read_index : read_index + window])
-                else:
-                    next.send(buffer[read_index : len(buf)] + buffer[0 : (window - len(buffer) + read_index)])
-                read_index = (read_index + offset) % len(buffer)
+                # data size between indexes
                 data_size =  write_index - read_index if read_index < write_index else window - read_index + write_index
+                #test if a data window can be sent
+                if data_size > window:
+                    # send a window (testing the case we must concatenate the beginning and end of the buffer)
+                    if (read_index < (read_index + window)%len(buffer)):
+                        next.send(buffer[read_index : read_index + window])
+                    else:
+                        next.send(buffer[read_index : len(buf)] + buffer[0 : (window - len(buffer) + read_index)])
+                    read_index = (read_index + offset) % len(buffer)
+
     except GeneratorExit:
         next.close()
-
-   
