@@ -1,4 +1,8 @@
-def  test(suiv):
+from ringBuffer import *
+
+#Function which send tabs into the pipeline
+@coroutine
+def  source(suiv):
     x = [1,2,3,4,5,6,7,8,9,10]
     y = ['a','b','c']
     while (True):
@@ -7,7 +11,9 @@ def  test(suiv):
         suiv.send(y)
     suiv.close()
 
-def pipe(suiv):
+#Send every other value
+@coroutine
+def everyOtherValue(suiv):
     try :
         while True:
             input=yield
@@ -19,7 +25,8 @@ def pipe(suiv):
     except GeneratorExit:
         suiv.close()
 
-
+#Buffer
+@coroutine
 def buffer(suiv):
     try :
         buf1 = [None] * 2
@@ -34,59 +41,9 @@ def buffer(suiv):
     except GeneratorExit:
         suiv.close()
 
-
-def coroutine(func):
-    """
-    Decorator that allows to forget about the first call of a coroutine .next()
-    method or .send(None)
-    This call is done inside the decorator
-    :param func: the coroutine to decorate
-    """
-    def start(*args,**kwargs):
-        cr = func(*args,**kwargs)
-        next(cr)
-        return cr
-    return start
-
+#Output of the pipeline, print the result of the treatment
 @coroutine
-def ring_buffer(next, window, covering):
-    """
-    Ring buffer inside a coroutine that allows to bufferize received data
-    and send it to next method when window size is reached. A covering size
-    can be set to include this amount of the previous data with the next send.
-    :param next: next coroutine to send data
-    :param window: data size to send
-    :param covering: data size sent with the next window
-    """
-    try:
-        buffer = [None]*window*4
-        write_index = 0
-        read_index = 0
-        offset = window - covering
-        while True :
-            input = yield
-            if input is None:
-                continue
-            # data size between indexes
-            data_size =  write_index - read_index if read_index < write_index else window - read_index + write_index
-            # add new data to buffer
-            for j in range (0, len(input)):
-                buffer[write_index] = input[j]
-                write_index = (write_index + 1 ) % len(buffer)
-
-            while(data_size > window):
-                # send a window (testing the case we must concatenate the beginning and end of the buffer)
-                if (read_index < (read_index + window)%len(buffer)):
-                    next.send(buffer[read_index : read_index + window])
-                else:
-                    next.send(buffer[read_index : len(buf)] + buffer[0 : (window - len(buffer) + read_index)])
-                read_index = (read_index + offset) % len(buffer)
-                data_size =  write_index - read_index if read_index < write_index else window - read_index + write_index
-    except GeneratorExit:
-        next.close()
-
-
-def sub():
+def sink():
     try:
         while True:
             input=yield
@@ -95,10 +52,7 @@ def sub():
         print("ici")
 
 
-sink = sub()
-next(sink)
-buf = ring_buffer(sink, 4, 2 )
-next(buf)
-source = test(buf)
-next(source)
-next(source)
+output = sink()
+buf = ring_buffer(output, 4, 2 )
+inp = source(buf)
+next(inp)
