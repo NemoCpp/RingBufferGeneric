@@ -1,6 +1,30 @@
+import numpy as np  
 from ringBuffer import *
+import sidekit
 
 #Function which send tabs into the pipeline
+@coroutine
+def audio_reader(next_routine, audio_file):
+    input_filename = audio_file
+    sampling_rate = 16000
+    if input_filename.endswith('.sph') or input_filename.endswith('.pcm')\
+            or input_filename.endswith('.wav') or input_filename.endswith('.raw'):
+        x, rate = sidekit.frontend.io.read_audio(input_filename, sampling_rate)
+
+    # add random noise to avoid any issue due to zeros
+    np.random.seed(0)
+    if x.ndim == 1:
+        x += 0.0001 * np.random.randn(x.shape[0])
+    elif x.ndim == 2:
+        x[:, 0] += 0.0001 * np.random.randn(x.shape[0])
+        if x.shape[1] == 2:
+            x[:, 1] += 0.0001 * np.random.randn(x.shape[0])
+
+    (yield None)
+    idx = 0
+    next_routine.send(x)
+    next_routine.close()
+
 @coroutine
 def  source(suiv):
     x = [1,2,3,4,5,6,7,8,9,10]
@@ -54,5 +78,8 @@ def sink():
 
 output = sink()
 buf = ring_buffer(output, 4, 2 )
-inp = source(buf)
-next(inp)
+inp = audio_reader(buf, "test.raw")
+try : 
+    next(inp)
+except StopIteration :
+    print("That's all folks")

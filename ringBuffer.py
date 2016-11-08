@@ -25,12 +25,14 @@ def ring_buffer(next, window, covering):
     :param covering: data size sent with the next window
     """
     try:
-        buffer = [None]*window*4
+        buffer = [None]*(window*10)
         write_index = 0
         read_index = 0
+        data_size = 0 
         offset = window - covering
         while True :
             input = yield
+            print (len(input))
             if input is None:
                 continue
             # add new data to buffer
@@ -39,15 +41,15 @@ def ring_buffer(next, window, covering):
                 #update write_index
                 write_index = (write_index + 1 ) % len(buffer)
                 # data size between indexes
-                data_size =  write_index - read_index if read_index < write_index else window - read_index + write_index
+                data_size =  write_index - read_index if read_index < write_index else len(buffer) - read_index + write_index
                 #test if a data window can be sent
                 if data_size > window:
                     # send a window (testing the case we must concatenate the beginning and end of the buffer)
                     if (read_index < (read_index + window)%len(buffer)):
                         next.send(buffer[read_index : read_index + window])
                     else:
-                        next.send(buffer[read_index : len(buf)] + buffer[0 : (window - len(buffer) + read_index)])
-                    read_index = (read_index + offset) % len(buffer)
+                        next.send(buffer[read_index : len(buffer)] + buffer[0 : (window - len(buffer) + read_index)])
+                    read_index = (read_index + offset) % len(buffer)   
 
     except GeneratorExit:
         next.close()
