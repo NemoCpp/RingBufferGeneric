@@ -9,6 +9,7 @@ Welcome to RingBuffer's documentation!
 .. toctree::
    :maxdepth: 2
 
+   README
    autodoc
 
 
