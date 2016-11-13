@@ -78,7 +78,7 @@ def sink():
 
 output = sink()
 buf = ring_buffer(output, 4, 2 )
-inp = audio_reader(buf, "test.raw")
+inp = audio_reader(buf, "/home/rosalie/Bureau/RichMeeting/SidePipe/RingBuffer/test.raw")
 try : 
     next(inp)
 except StopIteration :
