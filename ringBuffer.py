@@ -28,11 +28,13 @@ def ring_buffer(next, window, covering):
         buffer = [None]*(window*10)
         write_index = 0
         read_index = 0
-        data_size = 0 
+        data_size = 0
         offset = window - covering
         while True :
             input = yield
-            print (len(input))
+            if not isinstance(input, list): #check if array
+                input = [input]
+            #print (len(input))
             if input is None:
                 continue
             # add new data to buffer
@@ -49,7 +51,7 @@ def ring_buffer(next, window, covering):
                         next.send(buffer[read_index : read_index + window])
                     else:
                         next.send(buffer[read_index : len(buffer)] + buffer[0 : (window - len(buffer) + read_index)])
-                    read_index = (read_index + offset) % len(buffer)   
+                    read_index = (read_index + offset) % len(buffer)
 
     except GeneratorExit:
         next.close()
